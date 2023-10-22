@@ -153,7 +153,7 @@ class WLEDSegmentLight(WLEDEntity, LightEntity):
         if self._rgbw and self._cct:
             self._attr_color_mode = ColorMode.RGBWW
             self._attr_supported_color_modes = {ColorMode.RGBWW}
-        if self._rgbw and self._wv:
+        elif self._rgbw and self._wv:
             self._attr_color_mode = ColorMode.RGBW
             self._attr_supported_color_modes = {ColorMode.RGBW}
 
