@@ -3,7 +3,7 @@ from datetime import timedelta
 import logging
 
 # Integration domain
-DOMAIN = "wled"
+DOMAIN = "wled2"
 
 LOGGER = logging.getLogger(__package__)
 SCAN_INTERVAL = timedelta(seconds=10)

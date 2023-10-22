@@ -35,7 +35,7 @@ class WLEDUpdateEntity(WLEDEntity, UpdateEntity):
     _attr_supported_features = (
         UpdateEntityFeature.INSTALL | UpdateEntityFeature.SPECIFIC_VERSION
     )
-    _attr_title = "WLED"
+    _attr_title = "WLED2"
 
     def __init__(self, coordinator: WLEDDataUpdateCoordinator) -> None:
         """Initialize the update entity."""
