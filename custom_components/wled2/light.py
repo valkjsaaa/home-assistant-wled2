@@ -13,13 +13,13 @@ from homeassistant.components.light import (
     ATTR_RGBWW_COLOR,
     ColorMode,
     LightEntity,
-    LightEntityFeature,
+    LightEntityFeature, ATTR_COLOR_TEMP_KELVIN,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import ATTR_COLOR_PRIMARY, ATTR_ON, ATTR_SEGMENT_ID, DOMAIN
+from .const import ATTR_COLOR_PRIMARY, ATTR_ON, ATTR_SEGMENT_ID, DOMAIN, LOGGER
 from .coordinator import WLEDDataUpdateCoordinator
 from .helpers import wled_exception_handler
 from .models import WLEDEntity
@@ -152,7 +152,9 @@ class WLEDSegmentLight(WLEDEntity, LightEntity):
         self._attr_supported_color_modes = {ColorMode.RGB}
         if self._rgbw and self._cct:
             self._attr_color_mode = ColorMode.RGBWW
-            self._attr_supported_color_modes = {ColorMode.RGBWW}
+            self._attr_supported_color_modes = {ColorMode.RGB, ColorMode.RGBWW, ColorMode.COLOR_TEMP}
+            self._attr_min_color_temp_kelvin = 2700
+            self._attr_max_color_temp_kelvin = 6500
         elif self._rgbw and self._wv:
             self._attr_color_mode = ColorMode.RGBW
             self._attr_supported_color_modes = {ColorMode.RGBW}
@@ -248,6 +250,7 @@ class WLEDSegmentLight(WLEDEntity, LightEntity):
     @wled_exception_handler
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the light."""
+        LOGGER.error(kwargs)
         data: dict[str, Any] = {
             ATTR_ON: True,
             ATTR_SEGMENT_ID: self._segment,
@@ -270,13 +273,23 @@ class WLEDSegmentLight(WLEDEntity, LightEntity):
             data[ATTR_EFFECT] = kwargs[ATTR_EFFECT]
 
         if ATTR_RGBWW_COLOR in kwargs:
-            # 2700K (cct 0) to 8000K (cct 255)
-            r, g, b, cw_w, ww_w = kwargs[ATTR_RGBW_COLOR]
+            r, g, b, cw_w, ww_w = kwargs[ATTR_RGBWW_COLOR]
             w = max(cw_w, ww_w)
+            if w == 0:
+                w = 1
             data[ATTR_COLOR_PRIMARY] = (r, g, b, w)
             cw = int(cw_w / w * 255)
             ww = int(ww_w / w * 255)
             data["cct"] = cw_ww_to_cct(cw, ww)
+
+        if ATTR_COLOR_TEMP_KELVIN in kwargs:
+            # 2700K (cct 0) to 6500K (cct 255)
+            data["cct"] = int((kwargs[ATTR_COLOR_TEMP_KELVIN] - 2700) / (6500 - 2700) * 255)
+            if ATTR_COLOR_PRIMARY in data:
+                r, g, b, w = data[ATTR_COLOR_PRIMARY]
+            else:
+                r, g, b, w = self.rgbw_color
+            data[ATTR_COLOR_PRIMARY] = (0, 0, 0, w)
 
         # If there is no main control, and only 1 segment, handle the main
         if not self.coordinator.has_main_light:
