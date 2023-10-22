@@ -10,7 +10,7 @@ from homeassistant.components.light import (
     ATTR_RGB_COLOR,
     ATTR_RGBW_COLOR,
     ATTR_TRANSITION,
-    ATTR_COLOR_TEMP_KELVIN,
+    ATTR_RGBWW_COLOR,
     ColorMode,
     LightEntity,
     LightEntityFeature,
@@ -25,6 +25,25 @@ from .helpers import wled_exception_handler
 from .models import WLEDEntity
 
 PARALLEL_UPDATES = 1
+ADDITIVE_BLENDING = 100
+
+
+def cct_to_cw_ww(cct: int) -> tuple[int, int]:
+    """Convert cct value (0-255) to cw/ww values (0-255)."""
+
+    cw = min(int(cct * (100 + ADDITIVE_BLENDING) / 100), 255)
+    ww = min(int((255 - cct) * (100 + ADDITIVE_BLENDING) / 100), 255)
+    return cw, ww
+
+
+def cw_ww_to_cct(cw: int, ww: int) -> int:
+    """Convert cw/ww values (0-255) to cct value (0-255)."""
+    if cw == 255:
+        cw = 255 * (100 + ADDITIVE_BLENDING) / 100 - ww
+    elif ww == 255:
+        ww = 255 * (100 + ADDITIVE_BLENDING) / 100 - cw
+    cct = int(cw / (cw + ww) * 255)
+    return cct
 
 
 async def async_setup_entry(
@@ -115,6 +134,7 @@ class WLEDSegmentLight(WLEDEntity, LightEntity):
         super().__init__(coordinator=coordinator)
         self._rgbw = coordinator.data.info.leds.rgbw
         self._wv = coordinator.data.info.leds.wv
+        self._cct = coordinator.data.info.leds.cct
         self._segment = segment
 
         # Segment 0 uses a simpler name, which is more natural for when using
@@ -130,6 +150,9 @@ class WLEDSegmentLight(WLEDEntity, LightEntity):
 
         self._attr_color_mode = ColorMode.RGB
         self._attr_supported_color_modes = {ColorMode.RGB}
+        if self._rgbw and self._cct:
+            self._attr_color_mode = ColorMode.RGBWW
+            self._attr_supported_color_modes = {ColorMode.RGBWW}
         if self._rgbw and self._wv:
             self._attr_color_mode = ColorMode.RGBW
             self._attr_supported_color_modes = {ColorMode.RGBW}
@@ -155,6 +178,18 @@ class WLEDSegmentLight(WLEDEntity, LightEntity):
         return cast(
             tuple[int, int, int, int],
             self.coordinator.data.state.segments[self._segment].color_primary,
+        )
+
+    @property
+    def rgbww_color(self) -> tuple[int, int, int, int, int] | None:
+        """Return the color value."""
+        r, g, b, w = self.coordinator.data.state.segments[self._segment].color_primary
+        cw, ww = cct_to_cw_ww(self.coordinator.data.state.segments[self._segment].cct)
+        cw_w = int(cw / 255 * w / 255 * 255)
+        ww_w = int(ww / 255 * w / 255 * 255)
+        return cast(
+            tuple[int, int, int, int, int],
+            (r, g, b, cw_w, ww_w)
         )
 
     @property
@@ -234,11 +269,14 @@ class WLEDSegmentLight(WLEDEntity, LightEntity):
         if ATTR_EFFECT in kwargs:
             data[ATTR_EFFECT] = kwargs[ATTR_EFFECT]
 
-        if ATTR_COLOR_TEMP_KELVIN in kwargs:
+        if ATTR_RGBWW_COLOR in kwargs:
             # 2700K (cct 0) to 8000K (cct 255)
-            data["cct"] = int(
-                (kwargs[ATTR_COLOR_TEMP_KELVIN] - 2700) / (8000 - 2700) * 255
-            )
+            r, g, b, cw_w, ww_w = kwargs[ATTR_RGBW_COLOR]
+            w = max(cw_w, ww_w)
+            data[ATTR_COLOR_PRIMARY] = (r, g, b, w)
+            cw = int(cw_w / w * 255)
+            ww = int(ww_w / w * 255)
+            data["cct"] = cw_ww_to_cct(cw, ww)
 
         # If there is no main control, and only 1 segment, handle the main
         if not self.coordinator.has_main_light:
