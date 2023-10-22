@@ -1,6 +1,7 @@
 {
   "domain": "wled2",
   "name": "WLED2",
+  "version": "0.0.1",
   "codeowners": ["@frenck"],
   "config_flow": true,
   "documentation": "https://www.home-assistant.io/integrations/wled",
