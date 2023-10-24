@@ -38,6 +38,8 @@ def cct_to_cw_ww(cct: int) -> tuple[int, int]:
 
 def cw_ww_to_cct(cw: int, ww: int) -> int:
     """Convert cw/ww values (0-255) to cct value (0-255)."""
+    if cw == 0 and ww == 0:
+        return 127
     if cw == 255:
         cw = 255 * (100 + ADDITIVE_BLENDING) / 100 - ww
     elif ww == 255:
@@ -214,6 +216,12 @@ class WLEDSegmentLight(WLEDEntity, LightEntity):
         return state.segments[self._segment].brightness
 
     @property
+    def color_temp_kelvin(self) -> int | None:
+        """Return the color temperature."""
+        # 2700K (cct 0) to 6500K (cct 255)
+        return int((self.coordinator.data.state.segments[self._segment].cct / 255) * (6500 - 2700) + 2700)
+
+    @property
     def effect_list(self) -> list[str]:
         """Return the list of supported effects."""
         return [effect.name for effect in self.coordinator.data.effects]
@@ -285,11 +293,7 @@ class WLEDSegmentLight(WLEDEntity, LightEntity):
         if ATTR_COLOR_TEMP_KELVIN in kwargs:
             # 2700K (cct 0) to 6500K (cct 255)
             data["cct"] = int((kwargs[ATTR_COLOR_TEMP_KELVIN] - 2700) / (6500 - 2700) * 255)
-            if ATTR_COLOR_PRIMARY in data:
-                r, g, b, w = data[ATTR_COLOR_PRIMARY]
-            else:
-                r, g, b, w = self.rgbw_color
-            data[ATTR_COLOR_PRIMARY] = (0, 0, 0, w)
+            data[ATTR_COLOR_PRIMARY] = (0, 0, 0, 255)
 
         # If there is no main control, and only 1 segment, handle the main
         if not self.coordinator.has_main_light:

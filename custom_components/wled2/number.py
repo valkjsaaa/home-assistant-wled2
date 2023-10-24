@@ -5,7 +5,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from functools import partial
 
-from wled import Segment
+from wled2 import Segment
 
 from homeassistant.components.number import NumberEntity, NumberEntityDescription
 from homeassistant.config_entries import ConfigEntry

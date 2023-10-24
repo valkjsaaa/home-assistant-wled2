@@ -8,6 +8,6 @@
   "integration_type": "device",
   "iot_class": "local_push",
   "quality_scale": "platinum",
-  "requirements": ["wled@git+https://github.com/valkjsaaa/python-wled.git@11a9f0b"],
+  "requirements": ["wled2@git+https://github.com/valkjsaaa/python-wled.git@wled2"],
   "zeroconf": ["_wled._tcp.local."]
 }

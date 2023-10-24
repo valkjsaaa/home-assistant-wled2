@@ -4,7 +4,7 @@ from __future__ import annotations
 from collections.abc import Callable, Coroutine
 from typing import Any, Concatenate, ParamSpec, TypeVar
 
-from wled import WLEDConnectionError, WLEDError
+from wled2 import WLEDConnectionError, WLEDError
 
 from homeassistant.exceptions import HomeAssistantError
 

@@ -1,7 +1,7 @@
 """DataUpdateCoordinator for WLED."""
 from __future__ import annotations
 
-from wled import WLED, Device as WLEDDevice, WLEDConnectionClosedError, WLEDError
+from wled2 import WLED, Device as WLEDDevice, WLEDConnectionClosedError, WLEDError
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, EVENT_HOMEASSISTANT_STOP

@@ -1,2 +1,2 @@
 homeassistant==2023.10.4
-wled @ git+https://github.com/valkjsaaa/python-wled.git@11a9f0b
+wled2 @ git+https://github.com/valkjsaaa/python-wled.git@wled2
